@@ -2,21 +2,194 @@ import SpotifyWebApi from 'spotify-web-api-node';
 
 console.log('🔧 Initializing Spotify API with:', {
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
-  hasClientSecret: !!process.env.SPOTIFY_CLIENT_SECRET
+  hasClientSecret: !!process.env.SPOTIFY_CLIENT_SECRET,
+  redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI
 });
 
-const spotifyApi = new SpotifyWebApi({
+// Konfiguracja głównej instancji Spotify API
+export const spotifyApi = new SpotifyWebApi({
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+  redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback'
 });
 
-// Funkcja do pobierania tokenu (Client Credentials Flow)
-export const getSpotifyToken = async () => {
+// Scopes potrzebne dla aplikacji
+export const SPOTIFY_SCOPES = [
+  'playlist-read-private',
+  'playlist-read-collaborative', 
+  'user-read-private',
+  'user-read-email'
+];
+
+// ==========================================
+// AUTHORIZATION CODE FLOW FUNCTIONS
+// ==========================================
+
+/**
+ * Generuje URL do autoryzacji Spotify OAuth
+ */
+export const getSpotifyAuthUrl = (): string => {
+  const state = generateRandomString(16);
+  const scope = SPOTIFY_SCOPES.join(' ');
+  
+  const authUrl = spotifyApi.createAuthorizeURL(SPOTIFY_SCOPES, state);
+  console.log('🔗 Generated Spotify auth URL');
+  
+  return authUrl;
+};
+
+/**
+ * Wymienia kod autoryzacyjny na tokeny dostępu
+ */
+export const exchangeCodeForTokens = async (code: string) => {
   try {
-    console.log('🎫 Requesting access token...');
+    console.log('🔄 Exchanging authorization code for tokens...');
+    const data = await spotifyApi.authorizationCodeGrant(code);
+    
+    console.log('✅ Tokens received:', {
+      access_token: '***',
+      refresh_token: '***', 
+      expires_in: data.body.expires_in,
+      scope: data.body.scope
+    });
+
+    return {
+      accessToken: data.body.access_token,
+      refreshToken: data.body.refresh_token,
+      expiresIn: data.body.expires_in,
+      scope: data.body.scope
+    };
+  } catch (error: any) {
+    console.error('❌ Error exchanging code for tokens:', {
+      message: error.message,
+      status: error.statusCode,
+      body: error.body
+    });
+    throw error;
+  }
+};
+
+/**
+ * Odświeża token dostępu używając refresh token
+ */
+export const refreshAccessToken = async (refreshToken: string) => {
+  try {
+    console.log('🔄 Refreshing access token...');
+    
+    // Ustaw refresh token na instancji API
+    spotifyApi.setRefreshToken(refreshToken);
+    
+    const data = await spotifyApi.refreshAccessToken();
+    
+    console.log('✅ Token refreshed, expires in:', data.body.expires_in, 'seconds');
+    
+    return {
+      accessToken: data.body.access_token,
+      expiresIn: data.body.expires_in,
+      // Spotify czasami zwraca nowy refresh token
+      refreshToken: data.body.refresh_token || refreshToken
+    };
+  } catch (error: any) {
+    console.error('❌ Error refreshing token:', {
+      message: error.message,
+      status: error.statusCode,
+      body: error.body
+    });
+    throw error;
+  }
+};
+
+/**
+ * Tworzy nową instancję Spotify API z tokenem użytkownika
+ */
+export const createUserSpotifyApi = (accessToken: string, refreshToken?: string): SpotifyWebApi => {
+  const userSpotifyApi = new SpotifyWebApi({
+    clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+    redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback'
+  });
+  
+  userSpotifyApi.setAccessToken(accessToken);
+  if (refreshToken) {
+    userSpotifyApi.setRefreshToken(refreshToken);
+  }
+  
+  return userSpotifyApi;
+};
+
+// ==========================================
+// USER SESSION MANAGEMENT
+// ==========================================
+
+/**
+ * Sprawdza czy token jest ważny i odświeża go jeśli potrzeba
+ */
+export const ensureValidToken = async (
+  accessToken: string, 
+  refreshToken: string, 
+  expiresAt: number
+): Promise<{ accessToken: string; refreshToken: string; expiresAt: number }> => {
+  const now = Date.now();
+  const buffer = 5 * 60 * 1000; // 5 minut buforu
+  
+  // Jeśli token jest nadal ważny
+  if (expiresAt > now + buffer) {
+    return { accessToken, refreshToken, expiresAt };
+  }
+  
+  // Token wygasł, odśwież go
+  console.log('🔄 Token expired, refreshing...');
+  try {
+    const refreshedTokens = await refreshAccessToken(refreshToken);
+    const newExpiresAt = now + (refreshedTokens.expiresIn * 1000);
+    
+    return {
+      accessToken: refreshedTokens.accessToken,
+      refreshToken: refreshedTokens.refreshToken,
+      expiresAt: newExpiresAt
+    };
+  } catch (error) {
+    console.error('❌ Failed to refresh token:', error);
+    throw new Error('Session expired. Please log in again.');
+  }
+};
+
+/**
+ * Pobiera informacje o użytkowniku
+ */
+export const getUserInfo = async (accessToken: string) => {
+  try {
+    const userApi = createUserSpotifyApi(accessToken);
+    const userInfo = await userApi.getMe();
+    
+    console.log('✅ User info retrieved:', {
+      id: userInfo.body.id,
+      display_name: userInfo.body.display_name,
+      followers: userInfo.body.followers?.total
+    });
+    
+    return userInfo.body;
+  } catch (error: any) {
+    console.error('❌ Error fetching user info:', error);
+    throw error;
+  }
+};
+
+// ==========================================
+// LEGACY SUPPORT (dla kompatybilności)
+// ==========================================
+
+/**
+ * @deprecated Używaj Authorization Code Flow zamiast tego
+ * Stara funkcja do Client Credentials Flow - zostaje dla kompatybilności
+ */
+export const getSpotifyToken = async () => {
+  console.warn('⚠️ getSpotifyToken is deprecated. Use Authorization Code Flow instead.');
+  
+  try {
+    console.log('🎫 Requesting access token (Client Credentials)...');
     const data = await spotifyApi.clientCredentialsGrant();
     console.log('✅ Token received, expires in:', data.body.expires_in, 'seconds');
-    //console.log('🔍 Token scope:', data.body.scope || 'no scope specified');
     
     spotifyApi.setAccessToken(data.body.access_token);
     return data.body.access_token;
@@ -30,7 +203,27 @@ export const getSpotifyToken = async () => {
   }
 };
 
-// Funkcja do wyciągnięcia ID playlisty z URL
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
+
+/**
+ * Generuje losowy string dla state parameter
+ */
+export const generateRandomString = (length: number): string => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = '';
+  
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  
+  return text;
+};
+
+/**
+ * Funkcja do wyciągnięcia ID playlisty z URL - bez zmian
+ */
 export const getPlaylistIdFromUrl = (url: string): string | null => {
   if (!url) return null;
   
@@ -56,6 +249,4 @@ export const getPlaylistIdFromUrl = (url: string): string | null => {
   }
 };
 
-export { spotifyApi };
 export default spotifyApi;
-
