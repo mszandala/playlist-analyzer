@@ -1,32 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getSpotifyToken, spotifyApi } from '@/lib/spotify';
+import { createUserSpotifyApi } from '@/lib/spotify';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    console.log('🎵 API called for playlist:', id);
+    const { id } = params;
     
-    // Pobierz token
-    await getSpotifyToken();
+    // Pobierz token z ciasteczka
+    const accessToken = request.cookies.get('spotify_access_token')?.value;
+    const refreshToken = request.cookies.get('spotify_refresh_token')?.value;
     
-    // Test: sprawdź czy API w ogóle działa
-    try {
-      const me = await spotifyApi.getMe();
-      console.log('✅ API connection works, user:', me.body);
-    } catch (testError: any) {
-      console.log('⚠️ getMe() failed:', testError.message);
+    if (!accessToken || !refreshToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized - please log in' },
+        { status: 401 }
+      );
     }
+
+    // Stwórz instancję API z tokenem użytkownika
+    const spotifyApi = createUserSpotifyApi(accessToken, refreshToken);
     
     // Pobierz playlist
     const playlist = await spotifyApi.getPlaylist(id);
-    console.log('✅ Playlist fetched:', playlist.body.name);
     
     return NextResponse.json(playlist.body);
   } catch (error: any) {
-    console.error('❌ API Error:', error);
+    console.error('API Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch playlist', details: error.message },
       { status: 500 }

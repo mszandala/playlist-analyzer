@@ -1,22 +1,35 @@
 import SpotifyWebApi from 'spotify-web-api-node';
 
-console.log('🔧 Initializing Spotify API with:', {
-  clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
-  hasClientSecret: !!process.env.SPOTIFY_CLIENT_SECRET,
+console.log('Environment variables:', {
+  clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ? 'SET' : 'NOT SET',
+  clientSecret: process.env.SPOTIFY_CLIENT_SECRET ? 'SET' : 'NOT SET',
   redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI
 });
+
+// Sprawdź czy wszystkie wymagane zmienne środowiskowe są dostępne
+if (!process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID) {
+  throw new Error('Missing NEXT_PUBLIC_SPOTIFY_CLIENT_ID');
+}
+
+if (!process.env.SPOTIFY_CLIENT_SECRET) {
+  throw new Error('Missing SPOTIFY_CLIENT_SECRET');
+}
+
+if (!process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI) {
+  throw new Error('Missing NEXT_PUBLIC_SPOTIFY_REDIRECT_URI');
+}
 
 // Konfiguracja głównej instancji Spotify API
 export const spotifyApi = new SpotifyWebApi({
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback'
+  redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI
 });
 
 // Scopes potrzebne dla aplikacji
 export const SPOTIFY_SCOPES = [
   'playlist-read-private',
-  'playlist-read-collaborative', 
+  'playlist-read-collaborative',
   'user-read-private',
   'user-read-email'
 ];
@@ -30,11 +43,19 @@ export const SPOTIFY_SCOPES = [
  */
 export const getSpotifyAuthUrl = (): string => {
   const state = generateRandomString(16);
-  const scope = SPOTIFY_SCOPES.join(' ');
   
-  const authUrl = spotifyApi.createAuthorizeURL(SPOTIFY_SCOPES, state);
-  console.log('🔗 Generated Spotify auth URL');
-  
+  // Tworzymy URL autoryzacji ręcznie
+  const params = new URLSearchParams({
+    client_id: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID!,
+    response_type: 'code',
+    redirect_uri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI!,
+    state: state,
+    scope: SPOTIFY_SCOPES.join(' '),
+    show_dialog: 'true'
+  });
+
+  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  console.log('🔗 Generated Spotify auth URL:', authUrl);
   return authUrl;
 };
 
@@ -106,7 +127,7 @@ export const createUserSpotifyApi = (accessToken: string, refreshToken?: string)
   const userSpotifyApi = new SpotifyWebApi({
     clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://localhost:3000/api/auth/callback'
+    redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/callback'
   });
   
   userSpotifyApi.setAccessToken(accessToken);
