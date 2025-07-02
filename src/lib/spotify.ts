@@ -8,6 +8,7 @@ console.log('🔧 Initializing Spotify API with:', {
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+  redirectUri: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback`,
 });
 
 // Funkcja do pobierania tokenu (Client Credentials Flow)
@@ -20,11 +21,11 @@ export const getSpotifyToken = async () => {
     
     spotifyApi.setAccessToken(data.body.access_token);
     return data.body.access_token;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error getting Spotify token:', {
-      message: error.message,
-      status: error.statusCode,
-      body: error.body
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined,
+      body: error && typeof error === 'object' && 'body' in error ? error.body : undefined
     });
     throw error;
   }

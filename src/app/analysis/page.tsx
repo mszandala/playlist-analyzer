@@ -46,13 +46,19 @@ export default function AnalysisPage() {
       try {
         const response = await fetch(`/api/playlist/${params.id}`);
         if (!response.ok) {
-          throw new Error('Nie udało się pobrać danych playlisty');
+          const errorData = await response.json();
+          if (response.status === 401) {
+            setError('Nie jesteś zalogowany. Wróć do strony głównej i zaloguj się przez Spotify.');
+            return;
+          }
+          throw new Error(errorData.details || 'Nie udało się pobrać danych playlisty');
         }
         const playlistData = await response.json();
         setData(playlistData);
-      } catch (err) {
-        setError('Błąd podczas ładowania playlisty. Sprawdź czy jest publiczna.');
-        console.error('Error:', err);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Nieznany błąd';
+        setError(`Błąd podczas ładowania playlisty: ${errorMessage}`);
+        console.error('Error:', error);
       } finally {
         setLoading(false);
       }
