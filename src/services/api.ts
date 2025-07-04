@@ -1,30 +1,52 @@
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-}
+import type { ApiResponse, PlaylistData } from '@/types/spotify.types';
+
+const createApiResponse = async <T>(
+  fetchPromise: Promise<Response>,
+  errorMessage: string
+): Promise<ApiResponse<T>> => {
+  try {
+    const response = await fetchPromise;
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Sesja wygasła. Zaloguj się ponownie.');
+      }
+      if (response.status === 404) {
+        throw new Error('Playlista nie została znaleziona.');
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { data };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : errorMessage };
+  }
+};
 
 export const apiService = {
-  checkAuth: async (): Promise<ApiResponse<boolean>> => {
-    try {
-      const response = await fetch('/api/auth/check');
-      return { data: response.ok };
-    } catch (error) {
-      return { error: 'Błąd podczas sprawdzania autoryzacji' };
-    }
-  },
+  checkAuth: (): Promise<ApiResponse<{ authenticated: boolean }>> => 
+    createApiResponse(
+      fetch('/api/auth/check', {
+        credentials: 'include'
+      }),
+      'Błąd podczas sprawdzania autoryzacji'
+    ),
 
-  getPlaylist: async (playlistId: string): Promise<ApiResponse<any>> => {
-    try {
-      const response = await fetch(`/api/playlist/${playlistId}`);
-      if (!response.ok) {
-        throw new Error('Playlist nie została znaleziona');
-      }
-      const data = await response.json();
-      return { data };
-    } catch (error) {
-      return { 
-        error: 'Nie udało się załadować playlisty. Sprawdź czy jest publiczna.'
-      };
-    }
-  }
+  logout: (): Promise<ApiResponse<{ success: boolean }>> =>
+    createApiResponse(
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      }),
+      'Błąd podczas wylogowywania'
+    ),
+
+  getPlaylist: (playlistId: string): Promise<ApiResponse<PlaylistData>> =>
+    createApiResponse(
+      fetch(`/api/playlist/${playlistId}`, {
+        credentials: 'include'
+      }),
+      'Nie udało się załadować playlisty. Sprawdź czy jest publiczna.'
+    )
 };

@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -9,16 +10,20 @@ export default function CallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const code = searchParams.get('code');
-      const state = searchParams.get('state');
+      const error = searchParams.get('error');
+      
+      if (error) {
+        console.error('Spotify authorization error:', error);
+        router.push('/?error=spotify_denied');
+        return;
+      }
       
       if (!code) {
-        console.error('No code received from Spotify');
         router.push('/?error=no_code');
         return;
       }
 
       try {
-        // Wymiana kodu na tokeny
         const response = await fetch('/api/auth/callback', {
           method: 'POST',
           headers: {
@@ -28,13 +33,13 @@ export default function CallbackPage() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to exchange code for tokens');
+          throw new Error('Authentication failed');
         }
 
         // Przekieruj z powrotem na stronę główną
         router.push('/');
       } catch (error) {
-        console.error('Error during callback:', error);
+        console.error('Error during authentication:', error);
         router.push('/?error=auth_failed');
       }
     };

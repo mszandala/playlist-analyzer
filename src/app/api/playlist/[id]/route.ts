@@ -1,35 +1,65 @@
 import { NextResponse } from 'next/server';
-import { createUserSpotifyApi } from '@/lib/spotify';
+import { cookies } from 'next/headers';
+import { getPlaylistWithFeatures, ensureValidToken } from '@/lib/spotify';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('spotify_access_token')?.value;
+    const refreshToken = cookieStore.get('spotify_refresh_token')?.value;
+    const expiresAt = cookieStore.get('spotify_token_expires_at')?.value;
     
-    // Pobierz token z ciasteczka
-    const accessToken = request.cookies.get('spotify_access_token')?.value;
-    const refreshToken = request.cookies.get('spotify_refresh_token')?.value;
-    
-    if (!accessToken || !refreshToken) {
+    if (!accessToken || !refreshToken || !expiresAt) {
       return NextResponse.json(
-        { error: 'Unauthorized - please log in' },
+        { error: 'Brak autoryzacji. Zaloguj się ponownie.' },
         { status: 401 }
       );
     }
 
-    // Stwórz instancję API z tokenem użytkownika
-    const spotifyApi = createUserSpotifyApi(accessToken, refreshToken);
+    // Sprawdź i odśwież token jeśli potrzeba
+    const tokens = await ensureValidToken(
+      accessToken,
+      refreshToken,
+      parseInt(expiresAt)
+    );
+
+    // Pobierz dane playlisty
+    const playlistData = await getPlaylistWithFeatures(params.id, tokens.accessToken);
     
-    // Pobierz playlist
-    const playlist = await spotifyApi.getPlaylist(id);
+    const response = NextResponse.json(playlistData);
     
-    return NextResponse.json(playlist.body);
+    // Update cookies if tokens were refreshed
+    if (tokens.accessToken !== accessToken) {
+      response.cookies.set('spotify_access_token', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 // 1 hour
+      });
+      response.cookies.set('spotify_token_expires_at', tokens.expiresAt.toString(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 // 1 hour
+      });
+    }
+    
+    return response;
   } catch (error: any) {
-    console.error('API Error:', error);
+    console.error('Error fetching playlist:', error);
+    
+    if (error.message.includes('Session expired')) {
+      return NextResponse.json(
+        { error: 'Sesja wygasła. Zaloguj się ponownie.' },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch playlist', details: error.message },
+      { error: 'Nie udało się pobrać playlisty' },
       { status: 500 }
     );
   }

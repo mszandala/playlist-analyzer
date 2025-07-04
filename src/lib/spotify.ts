@@ -1,4 +1,6 @@
 import SpotifyWebApi from 'spotify-web-api-node';
+import { SpotifyTrack, PlaylistData, AudioFeatures } from '@/types/spotify.types';
+import type { AuthTokens } from '@/types/spotify.types';
 
 console.log('Environment variables:', {
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ? 'SET' : 'NOT SET',
@@ -41,10 +43,11 @@ export const SPOTIFY_SCOPES = [
 /**
  * Generuje URL do autoryzacji Spotify OAuth
  */
+const isDev = process.env.NODE_ENV === 'development';
+
 export const getSpotifyAuthUrl = (): string => {
   const state = generateRandomString(16);
   
-  // Tworzymy URL autoryzacji ręcznie
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID!,
     response_type: 'code',
@@ -55,37 +58,25 @@ export const getSpotifyAuthUrl = (): string => {
   });
 
   const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
-  console.log('🔗 Generated Spotify auth URL:', authUrl);
+  if (isDev) console.log('🔗 Generated Spotify auth URL:', authUrl);
   return authUrl;
 };
 
 /**
  * Wymienia kod autoryzacyjny na tokeny dostępu
  */
-export const exchangeCodeForTokens = async (code: string) => {
+export const exchangeCodeForTokens = async (code: string): Promise<AuthTokens> => {
   try {
     console.log('🔄 Exchanging authorization code for tokens...');
     const data = await spotifyApi.authorizationCodeGrant(code);
     
-    console.log('✅ Tokens received:', {
-      access_token: '***',
-      refresh_token: '***', 
-      expires_in: data.body.expires_in,
-      scope: data.body.scope
-    });
-
     return {
       accessToken: data.body.access_token,
       refreshToken: data.body.refresh_token,
-      expiresIn: data.body.expires_in,
-      scope: data.body.scope
+      expiresIn: data.body.expires_in
     };
   } catch (error: any) {
-    console.error('❌ Error exchanging code for tokens:', {
-      message: error.message,
-      status: error.statusCode,
-      body: error.body
-    });
+    console.error('❌ Error exchanging code for tokens:', error);
     throw error;
   }
 };
@@ -93,7 +84,7 @@ export const exchangeCodeForTokens = async (code: string) => {
 /**
  * Odświeża token dostępu używając refresh token
  */
-export const refreshAccessToken = async (refreshToken: string) => {
+export const refreshAccessToken = async (refreshToken: string): Promise<AuthTokens> => {
   try {
     console.log('🔄 Refreshing access token...');
     
@@ -107,7 +98,6 @@ export const refreshAccessToken = async (refreshToken: string) => {
     return {
       accessToken: data.body.access_token,
       expiresIn: data.body.expires_in,
-      // Spotify czasami zwraca nowy refresh token
       refreshToken: data.body.refresh_token || refreshToken
     };
   } catch (error: any) {
@@ -123,7 +113,10 @@ export const refreshAccessToken = async (refreshToken: string) => {
 /**
  * Tworzy nową instancję Spotify API z tokenem użytkownika
  */
-export const createUserSpotifyApi = (accessToken: string, refreshToken?: string): SpotifyWebApi => {
+export const createUserSpotifyApi = (
+  accessToken: string, 
+  refreshToken?: string
+): SpotifyWebApi => {
   const userSpotifyApi = new SpotifyWebApi({
     clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
@@ -178,7 +171,7 @@ export const ensureValidToken = async (
 /**
  * Pobiera informacje o użytkowniku
  */
-export const getUserInfo = async (accessToken: string) => {
+export const getUserInfo = async (accessToken: string): Promise<SpotifyApi.CurrentUsersProfileResponse> => {
   try {
     const userApi = createUserSpotifyApi(accessToken);
     const userInfo = await userApi.getMe();
@@ -196,33 +189,6 @@ export const getUserInfo = async (accessToken: string) => {
   }
 };
 
-// ==========================================
-// LEGACY SUPPORT (dla kompatybilności)
-// ==========================================
-
-/**
- * @deprecated Używaj Authorization Code Flow zamiast tego
- * Stara funkcja do Client Credentials Flow - zostaje dla kompatybilności
- */
-export const getSpotifyToken = async () => {
-  console.warn('⚠️ getSpotifyToken is deprecated. Use Authorization Code Flow instead.');
-  
-  try {
-    console.log('🎫 Requesting access token (Client Credentials)...');
-    const data = await spotifyApi.clientCredentialsGrant();
-    console.log('✅ Token received, expires in:', data.body.expires_in, 'seconds');
-    
-    spotifyApi.setAccessToken(data.body.access_token);
-    return data.body.access_token;
-  } catch (error: any) {
-    console.error('❌ Error getting Spotify token:', {
-      message: error.message,
-      status: error.statusCode,
-      body: error.body
-    });
-    throw error;
-  }
-};
 
 // ==========================================
 // UTILITY FUNCTIONS
@@ -268,6 +234,58 @@ export const getPlaylistIdFromUrl = (url: string): string | null => {
     console.error('❌ Error parsing playlist URL:', error);
     return null;
   }
+};
+
+export const getPlaylistWithFeatures = async (
+  playlistId: string,
+  accessToken: string
+): Promise<PlaylistData> => {
+  const userApi = createUserSpotifyApi(accessToken);
+  
+  // Pobierz playlistę
+  const playlistResponse = await userApi.getPlaylist(playlistId);
+  const playlist = playlistResponse.body;
+  
+  // Przygotuj strukturę zgodną z PlaylistData
+  const playlistData: PlaylistData = {
+    playlist: {
+      id: playlist.id,
+      name: playlist.name,
+      description: playlist.description || undefined,
+      followers: playlist.followers
+    },
+    tracks: playlist.tracks.items.map(item => ({
+      track: item.track as SpotifyTrack | null
+    }))
+  };
+
+  return playlistData;
+};
+
+export const getTracksAudioFeatures = async (
+  tracks: SpotifyTrack[],
+  accessToken: string
+): Promise<Map<string, AudioFeatures>> => {
+  const userApi = createUserSpotifyApi(accessToken);
+  const trackIds = tracks.map(track => track.id);
+  
+  const featuresResponse = await userApi.getAudioFeaturesForTracks(trackIds);
+  const features = new Map<string, AudioFeatures>();
+  
+  featuresResponse.body.audio_features.forEach((feature) => {
+    if (feature) {
+      features.set(feature.id, {
+        energy: feature.energy,
+        valence: feature.valence,
+        danceability: feature.danceability,
+        acousticness: feature.acousticness,
+        speechiness: feature.speechiness,
+        tempo: feature.tempo
+      });
+    }
+  });
+  
+  return features;
 };
 
 export default spotifyApi;
