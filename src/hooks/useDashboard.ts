@@ -18,25 +18,27 @@ export function useDashboard() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  // Load theme from localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setState(prev => ({ ...prev, isDarkMode: savedTheme === 'dark' }));
-    }
-
     const fetchUser = async () => {
-    try {
-        const res = await fetch('/api/user', {
-          credentials: 'include',
+      try {
+        const res = await fetch('/api/user', { 
+          credentials: 'include'
         });
-        if (!res.ok) throw new Error('Failed to fetch user');
-        const data = await res.json();
-        setUser(data);
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        } else {
+          console.log('User not authenticated in dashboard');
+          // NIE PRZEKIEROWUJ TUTAJ - zostaw to stronie głównej
+        }
       } catch (err) {
         console.error('Błąd przy pobieraniu użytkownika:', err);
-      };
+      } finally {
+        setLoadingUser(false);
+      }
     }
 
     fetchUser();
@@ -120,6 +122,7 @@ export function useDashboard() {
     clearSelection,
     selectAllPlaylists,
     user,
+    loadingUser,
     isDarkMode,
     toggleDarkMode,
     cardClasses,

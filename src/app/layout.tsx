@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientErrorBoundary } from "@/components/ClientErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -130,45 +131,13 @@ export default function RootLayout({
           scrollbar-thumb-green-500
         `}
       >
-        <ClientErrorBoundary>
-          <div className="relative">
-            {/* Background gradient overlay - Spotify style */}
-            <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900 -z-10" />
-            
-            {/* Optional: Background music visualization */}
-            <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
-              <div className="absolute top-20 left-10 w-72 h-72 bg-green-500/5 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute bottom-20 right-10 w-96 h-96 bg-green-400/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-            </div>
-            
-            {/* Main content */}
-            <main className="relative z-10">
+        <AuthProvider>
+          <ClientErrorBoundary>
+            <div className="relative min-h-screen">
               {children}
-            </main>
-            
-            {/* Optional: Footer */}
-            <footer className="relative z-10 mt-16 border-t border-gray-800 bg-black/50 backdrop-blur">
-              <div className="container mx-auto px-4 py-8">
-                <div className="text-center text-gray-400 text-sm">
-                  <p className="mb-2">
-                    Made with 💚 by{" "}
-                    <a 
-                      href="https://github.com/mszandala" 
-                      className="text-green-400 hover:text-green-300 transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      @mszandala
-                    </a>
-                  </p>
-                  <p className="text-xs">
-                    Nie jest powiązane ze Spotify AB. Spotify jest znakiem towarowym Spotify AB.
-                  </p>
-                </div>
-              </div>
-            </footer>
-          </div>
-        </ClientErrorBoundary>
+            </div>
+          </ClientErrorBoundary>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -36,8 +36,8 @@ export default function CallbackPage() {
           throw new Error('Authentication failed');
         }
 
-        // Przekieruj z powrotem na stronę główną
-        router.push('/');
+        // Przekieruj zna dashboard po pomyślnej autoryzacji
+        router.push('/dashboard');
       } catch (error) {
         console.error('Error during authentication:', error);
         router.push('/?error=auth_failed');

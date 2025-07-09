@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
 import { ApiResponse } from '@/types/spotify.types';
+import { User } from '@/types/dashboard.types';
 
 interface PlaylistAnalyzerState {
   playlistUrl: string;
   loading: boolean;
   error: string;
-  isLoggedIn: boolean;
+  isLoggedIn: boolean | undefined; // undefined = nie sprawdzono jeszcze
+  user: User | null;
 }
 
 export const usePlaylistAnalyzer = () => {
@@ -13,7 +15,8 @@ export const usePlaylistAnalyzer = () => {
     playlistUrl: '',
     loading: false,
     error: '',
-    isLoggedIn: false,
+    isLoggedIn: undefined,
+    user: null,
   });
 
   const updateState = useCallback((updates: Partial<PlaylistAnalyzerState>) => {

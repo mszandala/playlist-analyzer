@@ -1,4 +1,5 @@
 import type { ApiResponse, PlaylistData } from '@/types/spotify.types';
+import type { User } from '@/types/dashboard.types';
 
 const createApiResponse = async <T>(
   fetchPromise: Promise<Response>,
@@ -25,7 +26,7 @@ const createApiResponse = async <T>(
 };
 
 export const apiService = {
-  checkAuth: (): Promise<ApiResponse<{ authenticated: boolean }>> => 
+  checkAuth: (): Promise<ApiResponse<{ authenticated: boolean; user?: User }>> =>
     createApiResponse(
       fetch('/api/auth/check', {
         credentials: 'include'
