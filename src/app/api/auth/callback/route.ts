@@ -5,14 +5,17 @@ import type { AuthTokens } from '@/types/spotify.types';
 export async function POST(request: Request) {
   try {
     const { code } = await request.json();
-    
+
     if (!code) {
       return NextResponse.json({ error: 'No authorization code' }, { status: 400 });
     }
 
     const tokens: AuthTokens = await exchangeCodeForTokens(code);
-    
-    const response = NextResponse.json({ success: true });
+
+    const response = new NextResponse(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
     
     const cookieOptions = {
       httpOnly: true,

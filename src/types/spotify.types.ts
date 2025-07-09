@@ -30,7 +30,6 @@ export interface PlaylistData {
   }>;
 }
 
-// ...existing code...
 
 export interface AudioAverages {
   energy: string;

@@ -4,9 +4,11 @@ import { getPlaylistWithFeatures, ensureValidToken } from '@/lib/spotify';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const { id } = context.params;
+
     const cookieStore = await cookies();
     const accessToken = cookieStore.get('spotify_access_token')?.value;
     const refreshToken = cookieStore.get('spotify_refresh_token')?.value;
@@ -27,7 +29,7 @@ export async function GET(
     );
 
     // Pobierz dane playlisty
-    const playlistData = await getPlaylistWithFeatures(params.id, tokens.accessToken);
+    const playlistData = await getPlaylistWithFeatures(id, tokens.accessToken);
     
     const response = NextResponse.json(playlistData);
     

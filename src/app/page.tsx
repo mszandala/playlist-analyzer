@@ -68,7 +68,8 @@ export default function Home() {
       return;
     }
 
-    router.push(`/analysis/${playlistId}`);
+    //router.push(`/analysis/${playlistId}`);
+    router.push(`/dashboard/${playlistId}`);
   };
 
   return (
