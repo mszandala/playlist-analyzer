@@ -16,7 +16,6 @@ interface PlaylistSelectorProps {
   onSetSearchQuery: (query: string) => void;
   onClearSelection: () => void;
   onSelectAll: () => void;
-  
 }
 
 export function PlaylistSelector({
@@ -25,7 +24,7 @@ export function PlaylistSelector({
   viewMode,
   searchQuery,
   isDarkMode,
-   cardClasses, 
+  cardClasses, 
   hoverClasses,
   onTogglePlaylist,
   onSetViewMode,
@@ -33,10 +32,10 @@ export function PlaylistSelector({
   onClearSelection,
   onSelectAll
 }: PlaylistSelectorProps) {
-  const computedCard = cardClasses ?? (isDarkMode
-      ? 'bg-white border-gray-200'
-      : 'bg-gray-800 border-gray-700');
-  const inputClasses = isDarkMode ?  'bg-white border-gray-300' : 'bg-white-700 border-gray-600';
+  // NAPRAWIONA LOGIKA: isDarkMode true = ciemny motyw
+  const inputClasses = isDarkMode 
+    ? 'bg-gray-700 border-gray-600 text-white' 
+    : 'bg-white border-gray-300 text-gray-900';
   
   const isAllSelected = playlists.length > 0 && selectedPlaylists.length === playlists.length;
   const isSomeSelected = selectedPlaylists.length > 0 && selectedPlaylists.length < playlists.length;
@@ -105,7 +104,7 @@ export function PlaylistSelector({
           </div>
           
           {/* View mode toggle */}
-          <div className="flex border rounded-lg p-1">
+          <div className={`flex border rounded-lg p-1 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
             <button
               onClick={() => onSetViewMode('grid')}
               className={`p-2 rounded transition-colors ${

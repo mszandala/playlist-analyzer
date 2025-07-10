@@ -31,8 +31,13 @@ export function AnalysisNavigation({
   onSave,
   onShare
 }: AnalysisNavigationProps) {
-  const cardClasses = isDarkMode ? 'bg-white border-gray-200' : 'bg-gray-800 border-gray-700';
-  const hoverClasses = isDarkMode ? 'hover:bg-gray-100' : 'hover:bg-gray-700';
+  // NAPRAWIONA LOGIKA: isDarkMode true = ciemny motyw
+  const cardClasses = isDarkMode 
+    ? 'bg-gray-800 border-gray-700 text-white' 
+    : 'bg-white border-gray-200 text-gray-900';
+  const hoverClasses = isDarkMode 
+    ? 'hover:bg-gray-700' 
+    : 'hover:bg-gray-100';
 
   const tabs: AnalysisTab[] = [
     { id: 'overview', label: 'Przegląd', icon: BarChart3 },

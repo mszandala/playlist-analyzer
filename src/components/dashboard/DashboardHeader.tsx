@@ -4,7 +4,7 @@ import { User } from '@/types/dashboard.types';
 
 interface DashboardHeaderProps {
   user: User;
-  isDarkMode: boolean; // Uwaga: teraz true = ciemny
+  isDarkMode: boolean;
   onToggleTheme: () => void;
   onLogout: () => void;
 }
@@ -15,18 +15,18 @@ export function DashboardHeader({
   onToggleTheme,
   onLogout
 }: DashboardHeaderProps) {
-  // Odwrócone klasy – teraz true = ciemny motyw
+  // NAPRAWIONA LOGIKA: isDarkMode true = ciemny motyw (jak w innych komponentach)
   const cardClasses = isDarkMode
-    ? 'bg-white border-gray-200'
-    : 'bg-gray-800 border-gray-700';
+    ? 'bg-gray-800 border-gray-700'
+    : 'bg-white border-gray-200';
 
   const hoverClasses = isDarkMode
-    ? 'hover:bg-gray-100'
-    : 'hover:bg-gray-700';
+    ? 'hover:bg-gray-700'
+    : 'hover:bg-gray-100';
 
   const textClasses = isDarkMode
-    ? 'text-gray-900'
-    : 'text-white';
+    ? 'text-white'
+    : 'text-gray-900';
 
   return (
     <header className={`${cardClasses} ${textClasses} border-b px-6 py-4`}>
@@ -45,15 +45,14 @@ export function DashboardHeader({
           <button
             onClick={onToggleTheme}
             className={`p-2 rounded-lg ${hoverClasses} transition-colors`}
-            aria-label={isDarkMode ? 'Przełącz na ciemny motyw' : 'Przełącz na jasny motyw'}
-            title={isDarkMode ? 'Przełącz na ciemny motyw' : 'Przełącz na jasny motyw'}
+            aria-label={isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'}
+            title={isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'}
           >
-            {/* Pokaż księżyc w ciemnym (bo można przełączyć na jasny) */}
-            {/* Pokaż słońce w jasnym (bo można przełączyć na ciemny) */}
+            {/* NAPRAWIONA LOGIKA IKON - teraz spójna z innymi komponentami */}
             {isDarkMode ? (
-              <Moon className="w-5 h-5 text-gray-600" />
-            ) : (
               <Sun className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-gray-600" />
             )}
           </button>
 
