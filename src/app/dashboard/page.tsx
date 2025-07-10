@@ -24,8 +24,11 @@ const DashboardPage = () => {
     playlists,
     togglePlaylist,
     setViewMode,
+    setSearchQuery,
+    clearSelection,
+    selectAllPlaylists,
     isDarkMode,
-    toggleDarkMode,
+    toggleTheme,
     themeClasses,
     cardClasses,
     hoverClasses
@@ -68,7 +71,7 @@ const DashboardPage = () => {
       <DashboardHeader
         user={user}
         isDarkMode={isDarkMode}
-        onToggleTheme={toggleDarkMode}
+        onToggleTheme={toggleTheme}
         onLogout={handleLogout}
       />
 
@@ -82,9 +85,9 @@ const DashboardPage = () => {
         cardClasses={cardClasses}
         hoverClasses={hoverClasses}
         searchQuery={searchQuery}                   
-        onSetSearchQuery={(_) => {}}            
-        onClearSelection={() => {}}                 
-        onSelectAll={() => {}} 
+        onSetSearchQuery={setSearchQuery}            
+        onClearSelection={clearSelection}                 
+        onSelectAll={selectAllPlaylists} 
       />
 
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-200px)]">

@@ -34,9 +34,9 @@ export function PlaylistSelector({
   onSelectAll
 }: PlaylistSelectorProps) {
   const computedCard = cardClasses ?? (isDarkMode
-      ? 'bg-gray-800 border-gray-700'
-      : 'bg-white border-gray-200');
-  const inputClasses = isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300';
+      ? 'bg-white border-gray-200'
+      : 'bg-gray-800 border-gray-700');
+  const inputClasses = isDarkMode ?  'bg-white border-gray-300' : 'bg-white-700 border-gray-600';
   
   const isAllSelected = playlists.length > 0 && selectedPlaylists.length === playlists.length;
   const isSomeSelected = selectedPlaylists.length > 0 && selectedPlaylists.length < playlists.length;

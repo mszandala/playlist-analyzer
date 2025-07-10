@@ -2,10 +2,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { DashboardState, Playlist, AnalysisData } from '@/types/dashboard.types';
 import { User } from '@/types/dashboard.types';
 
+const getInitialDarkMode = (): boolean => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'dark') return true;
+    if (stored === 'light') return false;
+    
+    // Sprawdź preferencje systemowe
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Domyślnie ciemny motyw (można zmienić na systemPrefersDark jeśli chcesz)
+    return true;
+  }
+  return true;
+};
+
 const initialState: DashboardState = {
   selectedPlaylists: [],
   selectedTab: 'overview',
-  isDarkMode: true,
+  isDarkMode: getInitialDarkMode(),
   viewMode: 'grid',
   searchQuery: '',
   isLoading: false,
@@ -17,7 +32,6 @@ export function useDashboard() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
@@ -32,7 +46,6 @@ export function useDashboard() {
           setUser(data);
         } else {
           console.log('User not authenticated in dashboard');
-          // NIE PRZEKIEROWUJ TUTAJ - zostaw to stronie głównej
         }
       } catch (err) {
         console.error('Błąd przy pobieraniu użytkownika:', err);
@@ -44,13 +57,40 @@ export function useDashboard() {
     fetchUser();
   }, []);
 
-  // Save theme to localStorage
+  // Inicjalizacja motywu przy starcie
   useEffect(() => {
-    localStorage.setItem('theme', state.isDarkMode ? 'dark' : 'light');
+    const root = document.documentElement;
+    const body = document.body;
+    
+    // Upewnij się, że początkowy stan jest poprawny
+    if (state.isDarkMode) {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      body.classList.add('dark');
+      body.classList.remove('light');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+      body.classList.add('light');
+      body.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   }, [state.isDarkMode]);
 
-  const updateState = useCallback((updates: Partial<DashboardState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+  // Obsługa zmiany preferencji systemowych
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Tylko jeśli użytkownik nie ustawił własnej preferencji
+      if (!localStorage.getItem('theme')) {
+        setState(prev => ({ ...prev, isDarkMode: e.matches }));
+      }
+    };
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
   }, []);
 
   const togglePlaylist = useCallback((playlistId: string) => {
@@ -63,7 +103,11 @@ export function useDashboard() {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setState(prev => ({ ...prev, isDarkMode: !prev.isDarkMode }));
+    setState(prev => {
+      const newDarkMode = !prev.isDarkMode;
+      console.log('Przełączanie motywu:', prev.isDarkMode, '->', newDarkMode);
+      return { ...prev, isDarkMode: newDarkMode };
+    });
   }, []);
 
   const setSelectedTab = useCallback((tab: string) => {
@@ -100,11 +144,18 @@ export function useDashboard() {
     state.selectedPlaylists.includes(playlist.id)
   );
 
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+  const cardClasses = state.isDarkMode 
+    ? 'bg-gray-800 border-gray-700 text-white'      // teraz: "ciemny", dawniej jasny
+    : 'bg-white border-gray-200 text-gray-900';     // teraz: "jasny", dawniej ciemny
 
-  const cardClasses = isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-  const themeClasses = isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-black';
-  const hoverClasses = isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
+  const themeClasses = state.isDarkMode 
+    ? 'bg-gray-900 text-white'                      // teraz: ciemne tło
+    : 'bg-gray-50 text-gray-900';                   // teraz: jasne tło
+
+  const hoverClasses = state.isDarkMode 
+    ? 'hover:bg-gray-700'                           // ciemny hover
+    : 'hover:bg-gray-100';                          // jasny hover
+
 
   return {
     state,
@@ -113,7 +164,6 @@ export function useDashboard() {
     analysisData,
     setPlaylists,
     setAnalysisData,
-    updateState,
     togglePlaylist,
     toggleTheme,
     setSelectedTab,
@@ -123,10 +173,9 @@ export function useDashboard() {
     selectAllPlaylists,
     user,
     loadingUser,
-    isDarkMode,
-    toggleDarkMode,
     cardClasses,
     themeClasses,
     hoverClasses,
+    isDarkMode: state.isDarkMode,
   };
 }
