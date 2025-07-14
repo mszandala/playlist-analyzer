@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Grid3x3, List, X, CheckSquare, Square } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Grid3x3, List, X, CheckSquare, Square, ChevronDown } from 'lucide-react';
 import { Playlist } from '@/types/dashboard.types';
 import { PlaylistCard } from './PlaylistCard';
 
@@ -39,6 +39,37 @@ export function PlaylistSelector({
   
   const isAllSelected = playlists.length > 0 && selectedPlaylists.length === playlists.length;
   const isSomeSelected = selectedPlaylists.length > 0 && selectedPlaylists.length < playlists.length;
+
+  const [visibleRows, setVisibleRows] = useState(2);
+  const [screenSize, setScreenSize] = useState<'sm' | 'lg' | 'xl'>('lg');  
+
+  // Detect screen size
+  useEffect(() => {
+    const updateScreenSize = () => {
+      if (window.innerWidth >= 1280) setScreenSize('xl');
+      else if (window.innerWidth >= 1024) setScreenSize('lg');
+      else setScreenSize('sm');
+    };
+
+    updateScreenSize();
+    window.addEventListener('resize', updateScreenSize);
+    return () => window.removeEventListener('resize', updateScreenSize);
+  }, []);
+
+  const playlistsPerRow = useMemo(() => {
+    if (viewMode === 'list') return 1;
+    
+    switch (screenSize) {
+      case 'xl': return 7;
+      case 'lg': return 3;
+      case 'sm': return 2;
+      default: return 3;
+    }
+  }, [viewMode, screenSize]);
+
+  const maxVisible = visibleRows * playlistsPerRow;
+  const visiblePlaylists = playlists.slice(0, maxVisible);
+  const hasMore = playlists.length > maxVisible;
 
   return (
     <div className={`${cardClasses} border-b px-6 py-6`}>
@@ -143,10 +174,10 @@ export function PlaylistSelector({
       ) : (
         <div className={`grid ${
           viewMode === 'grid' 
-            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+            ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7' 
             : 'grid-cols-1'
         } gap-4`}>
-          {playlists.map(playlist => (
+          {visiblePlaylists.map(playlist => (
             <PlaylistCard
               key={playlist.id}
               playlist={playlist}
@@ -159,27 +190,30 @@ export function PlaylistSelector({
         </div>
       )}
       
-      {/* Selected playlists summary */}
-      {selectedPlaylists.length > 0 && (
-        <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-          <h4 className="font-semibold text-green-500 mb-2">Wybrane playlisty:</h4>
-          <div className="flex flex-wrap gap-2">
-            {selectedPlaylists.slice(0, 5).map(id => {
-              const playlist = playlists.find(p => p.id === id);
-              return playlist ? (
-                <span key={id} className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded">
-                  {playlist.name}
-                </span>
-              ) : null;
-            })}
-            {selectedPlaylists.length > 5 && (
-              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded">
-                +{selectedPlaylists.length - 5} więcej
-              </span>
-            )}
-          </div>
+      {/* Load More Bar */}
+      {hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setVisibleRows(prev => prev + 2)}
+            className={`
+              flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-colors duration-200
+              ${isDarkMode 
+                ? 'bg-white/10 text-white hover:bg-white/20' 
+                : 'bg-black text-white hover:bg-neutral-800'
+              }
+            `}
+          >
+            <ChevronDown className="w-5 h-5" />
+            Pokaż więcej playlist ({playlists.length - maxVisible} pozostałych)
+          </button>
         </div>
       )}
+
+
+      {/* Stats */}
+      <div className={`mt-4 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        {visiblePlaylists.length} z {playlists.length} playlist
+      </div>
     </div>
   );
 }
