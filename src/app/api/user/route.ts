@@ -8,6 +8,7 @@ export async function GET() {
     
 
   if (!accessToken) {
+    // Brak tokena = brak autoryzacji
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,6 +19,7 @@ export async function GET() {
   });
 
   if (!res.ok) {
+    // Coś poszło nie tak z API Spotify
     return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
   }
 
@@ -29,5 +31,6 @@ export async function GET() {
     email: data.email,
     image: data.images?.[0]?.url ?? '',
     spotifyId: data.id,
+    accessToken: accessToken.value,
   });
 }

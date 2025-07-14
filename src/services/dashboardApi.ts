@@ -1,3 +1,4 @@
+// src/services/dashboardApi.ts
 import { SpotifyPlaylist } from '@/types/spotify.types';
 
 export interface DashboardStats {
@@ -30,40 +31,67 @@ export interface SavedAnalysis {
 }
 
 class DashboardApi {
-  private baseUrl = '/api/dashboard';
+  private baseUrl = '/api';
+  private accessToken: string | null = null;
+  private requestCache = new Map<string, Promise<any>>();
+
+  setAccessToken(token: string) {
+    this.accessToken = token;
+  }
+
+  hasAccessToken(): boolean {
+    return !!this.accessToken;
+  }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const token = localStorage.getItem('spotify_access_token');
-    
-    if (!token) {
-      throw new Error('No access token available');
+    // Dodaj cache dla GET requestów żeby uniknąć duplikatów
+    const cacheKey = `${options.method || 'GET'}-${endpoint}`;
+    if (!options.method || options.method === 'GET') {
+      if (this.requestCache.has(cacheKey)) {
+        return this.requestCache.get(cacheKey);
+      }
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const requestPromise = fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      credentials: 'include',
+      headers,
+    }).then(async (response) => {
+      // Usuń z cache po zakończeniu
+      this.requestCache.delete(cacheKey);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Request failed: ${response.status}`);
+      }
+      return response.json();
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed: ${response.status}`);
+    // Cachuj tylko GET requesty
+    if (!options.method || options.method === 'GET') {
+      this.requestCache.set(cacheKey, requestPromise);
     }
 
-    return response.json();
+    return requestPromise;
   }
-
+  
   async getDashboardStats(): Promise<DashboardStats> {
     return this.request<DashboardStats>('/stats');
   }
 
-  async getUserPlaylists(offset = 0, limit = 50): Promise<{
+   async getUserPlaylists(offset = 0, limit = 50): Promise<{
     playlists: SpotifyPlaylist[];
     total: number;
     hasMore: boolean;
@@ -72,11 +100,22 @@ class DashboardApi {
       playlists: SpotifyPlaylist[];
       total: number;
       hasMore: boolean;
-    }>(`/playlists?offset=${offset}&limit=${limit}`);
+    }>(`/dashboard/playlists?offset=${offset}&limit=${limit}`);
   }
 
-  async searchPlaylists(query: string): Promise<SpotifyPlaylist[]> {
-    return this.request<SpotifyPlaylist[]>(`/playlists/search?q=${encodeURIComponent(query)}`);
+  async searchPlaylists(query: string): Promise<{
+    playlists: SpotifyPlaylist[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    return this.request<{
+      playlists: SpotifyPlaylist[];
+      total: number;
+      hasMore: boolean;
+    }>('/dashboard/playlists', {
+      method: 'POST',
+      body: JSON.stringify({ searchQuery: query }),
+    });
   }
 
   async getPlaylistDetails(playlistId: string): Promise<SpotifyPlaylist> {
@@ -132,17 +171,10 @@ class DashboardApi {
     });
   }
 
+  // NAPRAWIONA metoda exportAnalysis - używa cookies zamiast localStorage
   async exportAnalysis(analysisId: string, format: 'json' | 'csv' | 'pdf' = 'json'): Promise<Blob> {
-    const token = localStorage.getItem('spotify_access_token');
-    
-    if (!token) {
-      throw new Error('No access token available');
-    }
-
     const response = await fetch(`${this.baseUrl}/analyses/${analysisId}/export?format=${format}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      credentials: 'include', // Używa cookies zamiast localStorage
     });
 
     if (!response.ok) {

@@ -1,28 +1,25 @@
+export interface Playlist {
+  id: string;
+  name: string;
+  description: string;
+  owner: string;
+  imageUrl: string;
+  tracksCount: number;
+  isPublic: boolean;
+  collaborative: boolean;
+  externalUrl: string;
+  createdAt: Date;
+  lastModified: Date;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   image: string;
-  spotifyId: string;
+  accessToken?: string; 
 }
 
-export interface Playlist {
-  id: string;
-  name: string;
-  description?: string;
-  tracks: number;
-  image: string;
-  owner: string;
-  isPublic: boolean;
-  spotifyId: string;
-}
-
-export interface AnalysisTab {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  disabled?: boolean;
-}
 
 export interface DashboardState {
   selectedPlaylists: string[];
@@ -32,6 +29,13 @@ export interface DashboardState {
   searchQuery: string;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface AnalysisTab {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  disabled?: boolean;
 }
 
 export interface PlaylistStats {
