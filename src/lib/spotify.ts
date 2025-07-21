@@ -28,14 +28,19 @@ export const spotifyApi = new SpotifyWebApi({
   redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI
 });
 
-// Scopes potrzebne dla aplikacji
-export const SPOTIFY_SCOPES = [
+const scopes = [
+  'user-library-read',
   'playlist-read-private',
   'playlist-read-collaborative',
   'user-read-private',
-  'user-read-email'
-];
-
+  'user-read-email',
+  'user-read-recently-played',
+  'user-top-read',
+  'user-read-playback-state',
+  'user-modify-playback-state',
+  'user-read-currently-playing',
+  'streaming'
+].join(' ');
 // ==========================================
 // AUTHORIZATION CODE FLOW FUNCTIONS
 // ==========================================
@@ -47,13 +52,13 @@ const isDev = process.env.NODE_ENV === 'development';
 
 export const getSpotifyAuthUrl = (): string => {
   const state = generateRandomString(16);
-  
+
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID!,
     response_type: 'code',
     redirect_uri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI!,
     state: state,
-    scope: SPOTIFY_SCOPES.join(' '),
+    scope: scopes, // <- użyj własnej zmiennej scopes
     show_dialog: 'true'
   });
 
@@ -69,7 +74,7 @@ export const exchangeCodeForTokens = async (code: string): Promise<AuthTokens> =
   try {
     console.log('🔄 Exchanging authorization code for tokens...');
     const data = await spotifyApi.authorizationCodeGrant(code);
-    
+
     return {
       accessToken: data.body.access_token,
       refreshToken: data.body.refresh_token,
@@ -87,14 +92,14 @@ export const exchangeCodeForTokens = async (code: string): Promise<AuthTokens> =
 export const refreshAccessToken = async (refreshToken: string): Promise<AuthTokens> => {
   try {
     console.log('🔄 Refreshing access token...');
-    
+
     // Ustaw refresh token na instancji API
     spotifyApi.setRefreshToken(refreshToken);
-    
+
     const data = await spotifyApi.refreshAccessToken();
-    
+
     console.log('✅ Token refreshed, expires in:', data.body.expires_in, 'seconds');
-    
+
     return {
       accessToken: data.body.access_token,
       expiresIn: data.body.expires_in,
@@ -114,7 +119,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<AuthToke
  * Tworzy nową instancję Spotify API z tokenem użytkownika
  */
 export const createUserSpotifyApi = (
-  accessToken: string, 
+  accessToken: string,
   refreshToken?: string
 ): SpotifyWebApi => {
   const userSpotifyApi = new SpotifyWebApi({
@@ -122,12 +127,12 @@ export const createUserSpotifyApi = (
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
     redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3000/callback'
   });
-  
+
   userSpotifyApi.setAccessToken(accessToken);
   if (refreshToken) {
     userSpotifyApi.setRefreshToken(refreshToken);
   }
-  
+
   return userSpotifyApi;
 };
 
@@ -139,24 +144,24 @@ export const createUserSpotifyApi = (
  * Sprawdza czy token jest ważny i odświeża go jeśli potrzeba
  */
 export const ensureValidToken = async (
-  accessToken: string, 
-  refreshToken: string, 
+  accessToken: string,
+  refreshToken: string,
   expiresAt: number
 ): Promise<{ accessToken: string; refreshToken: string; expiresAt: number }> => {
   const now = Date.now();
   const buffer = 5 * 60 * 1000; // 5 minut buforu
-  
+
   // Jeśli token jest nadal ważny
   if (expiresAt > now + buffer) {
     return { accessToken, refreshToken, expiresAt };
   }
-  
+
   // Token wygasł, odśwież go
   console.log('🔄 Token expired, refreshing...');
   try {
     const refreshedTokens = await refreshAccessToken(refreshToken);
     const newExpiresAt = now + (refreshedTokens.expiresIn * 1000);
-    
+
     return {
       accessToken: refreshedTokens.accessToken,
       refreshToken: refreshedTokens.refreshToken,
@@ -175,13 +180,13 @@ export const getUserInfo = async (accessToken: string): Promise<SpotifyApi.Curre
   try {
     const userApi = createUserSpotifyApi(accessToken);
     const userInfo = await userApi.getMe();
-    
+
     console.log('✅ User info retrieved:', {
       id: userInfo.body.id,
       display_name: userInfo.body.display_name,
       followers: userInfo.body.followers?.total
     });
-    
+
     return userInfo.body;
   } catch (error: any) {
     console.error('❌ Error fetching user info:', error);
@@ -200,11 +205,11 @@ export const getUserInfo = async (accessToken: string): Promise<SpotifyApi.Curre
 export const generateRandomString = (length: number): string => {
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let text = '';
-  
+
   for (let i = 0; i < length; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-  
+
   return text;
 };
 
@@ -213,13 +218,13 @@ export const generateRandomString = (length: number): string => {
  */
 export const getPlaylistIdFromUrl = (url: string): string | null => {
   if (!url) return null;
-  
+
   try {
     const patterns = [
       /playlist[\/:]([a-zA-Z0-9]+)/,
       /\/playlist\/([a-zA-Z0-9]+)/
     ];
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match && match[1]) {
@@ -227,7 +232,7 @@ export const getPlaylistIdFromUrl = (url: string): string | null => {
         return match[1];
       }
     }
-    
+
     console.log('❌ Could not extract playlist ID from URL:', url);
     return null;
   } catch (error) {
@@ -241,11 +246,11 @@ export const getPlaylistWithFeatures = async (
   accessToken: string
 ): Promise<PlaylistData> => {
   const userApi = createUserSpotifyApi(accessToken);
-  
+
   // Pobierz playlistę
   const playlistResponse = await userApi.getPlaylist(playlistId);
   const playlist = playlistResponse.body;
-  
+
   // Przygotuj strukturę zgodną z PlaylistData
   const playlistData: PlaylistData = {
     playlist: {
@@ -268,10 +273,10 @@ export const getTracksAudioFeatures = async (
 ): Promise<Map<string, AudioFeatures>> => {
   const userApi = createUserSpotifyApi(accessToken);
   const trackIds = tracks.map(track => track.id);
-  
+
   const featuresResponse = await userApi.getAudioFeaturesForTracks(trackIds);
   const features = new Map<string, AudioFeatures>();
-  
+
   featuresResponse.body.audio_features.forEach((feature) => {
     if (feature) {
       features.set(feature.id, {
@@ -284,7 +289,7 @@ export const getTracksAudioFeatures = async (
       });
     }
   });
-  
+
   return features;
 };
 

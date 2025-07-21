@@ -85,13 +85,42 @@ export async function getAnalysisForPlaylists(
     options: any = {},
     accessToken: string
 ): Promise<AnalysisResult> {
-    const playlistsData = await Promise.all(
-        playlistIds.map(id => getPlaylistWithFeatures(id, accessToken))
-    );
-    const allTracks = playlistsData
-        .flatMap(pl => pl.tracks.map(t => t.track))
-        .filter((track): track is SpotifyTrack => track !== null && track !== undefined);
-    const audioFeaturesMap = await getTracksAudioFeatures(allTracks, accessToken);
+    console.log('getAnalysisForPlaylists: playlistIds', playlistIds);
+    console.log('getAnalysisForPlaylists: accessToken', !!accessToken);
+
+
+    let playlistsData;
+    try {
+        playlistsData = await Promise.all(
+            playlistIds.map(id => getPlaylistWithFeatures(id, accessToken))
+        );
+        console.log('[getAnalysisForPlaylists] playlistsData', playlistsData);
+    } catch (err) {
+        console.error('[getAnalysisForPlaylists] Error fetching playlists:', err);
+        throw err;
+    }
+
+    let allTracks;
+    try {
+        allTracks = playlistsData
+            .flatMap(pl => pl.tracks.map(t => t.track))
+            .filter((track): track is SpotifyTrack => track !== null && track !== undefined);
+        console.log('[getAnalysisForPlaylists] allTracks', allTracks.length);
+    } catch (err) {
+        console.error('[getAnalysisForPlaylists] Error processing tracks:', err);
+        throw err;
+    }
+
+    let audioFeaturesMap;
+    try {
+        audioFeaturesMap = await getTracksAudioFeatures(allTracks, accessToken);
+        console.log('[getAnalysisForPlaylists] audioFeaturesMap size', audioFeaturesMap.size);
+    } catch (err: any) {
+        if (err.statusCode === 403) {
+            console.error('Brak uprawnień do pobrania audio features. Użytkownik musi się zalogować ponownie.');
+        }
+        throw err;
+    }
 
     // Statystyki
     const totalTracks = allTracks.length;
@@ -119,6 +148,7 @@ export async function getAnalysisForPlaylists(
     // const years = yearDistribution(allTracks);
     // const topTracksList = topTracks(allTracks);
 
+    console.log('[getAnalysisForPlaylists] genreDistribution', genreDistribution);
 
     return {
         playlistIds,

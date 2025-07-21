@@ -23,6 +23,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(analysisResult);
     } catch (error) {
         console.error('Błąd analizy playlist:', error);
-        return NextResponse.json({ error: 'Błąd serwera analizy' }, { status: 500 });
+        let message = 'Nieznany błąd';
+        if (typeof error === 'object' && error !== null && 'message' in error) {
+            message = (error as { message: string }).message;
+        } else {
+            message = String(error);
+        }
+        return NextResponse.json(
+            { error: 'Błąd serwera analizy', message },
+            { status: 500 }
+        );
     }
 }
