@@ -1,9 +1,9 @@
-import { 
-  AnalysisResult, 
-  AnalysisOptions, 
-  ArtistAnalysis, 
-  TrackAnalysis, 
-  PlaylistComparison 
+import {
+  AnalysisResult,
+  AnalysisOptions,
+  ArtistAnalysis,
+  TrackAnalysis,
+  PlaylistComparison
 } from '@/types/analysis.types';
 
 export interface AnalysisProgress {
@@ -20,7 +20,7 @@ class AnalysisApi {
     options: RequestInit = {}
   ): Promise<T> {
     const token = localStorage.getItem('spotify_access_token');
-    
+
     if (!token) {
       throw new Error('No access token available');
     }
@@ -36,6 +36,7 @@ class AnalysisApi {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('API error response:', errorData);
       throw new Error(errorData.message || `Analysis request failed: ${response.status}`);
     }
 
@@ -51,7 +52,7 @@ class AnalysisApi {
       includeComparisons: false,
     }
   ): Promise<AnalysisResult> {
-    return this.request<AnalysisResult>(`/playlist/${playlistId}`, {
+    return this.request<AnalysisResult>('', {
       method: 'POST',
       body: JSON.stringify(options),
     });
@@ -66,7 +67,7 @@ class AnalysisApi {
       includeComparisons: true,
     }
   ): Promise<AnalysisResult> {
-    return this.request<AnalysisResult>('/playlists/batch', {
+    return this.request<AnalysisResult>('', {
       method: 'POST',
       body: JSON.stringify({ playlistIds, options }),
     });

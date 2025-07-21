@@ -15,7 +15,6 @@ export function DashboardHeader({
   onToggleTheme,
   onLogout
 }: DashboardHeaderProps) {
-  // NAPRAWIONA LOGIKA: isDarkMode true = ciemny motyw (jak w innych komponentach)
   const cardClasses = isDarkMode
     ? 'bg-gray-800 border-gray-700'
     : 'bg-white border-gray-200';
@@ -48,7 +47,6 @@ export function DashboardHeader({
             aria-label={isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'}
             title={isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'}
           >
-            {/* NAPRAWIONA LOGIKA IKON - teraz spójna z innymi komponentami */}
             {isDarkMode ? (
               <Sun className="w-5 h-5 text-yellow-400" />
             ) : (

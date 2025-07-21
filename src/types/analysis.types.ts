@@ -37,7 +37,8 @@ export interface PlaylistStatistics {
   averagePopularity: number;
   mostCommonGenre: string;
   uniqueArtists: number;
-  duplicateTracks: number;
+  uniqueAlbums: number;
+  avgTrackDuration: number;
 }
 
 export interface MoodAnalysis {
@@ -85,13 +86,13 @@ export interface PlaylistComparison {
 export interface AnalysisResult {
   playlistIds: string[];
   statistics: PlaylistStatistics;
-  topArtists: ArtistAnalysis[];
-  topTracks: TrackAnalysis[];
-  moodAnalysis: MoodAnalysis;
-  genreDistribution: GenreDistribution[];
-  audioFeaturesAnalysis: AudioFeaturesAnalysis;
-  comparisons?: PlaylistComparison[];
-  generatedAt: Date;
+  // topArtists: ArtistAnalysis[];
+  // topTracks: TrackAnalysis[];
+  // moodAnalysis: MoodAnalysis;
+  // genreDistribution: GenreDistribution[];
+  // audioFeaturesAnalysis: AudioFeaturesAnalysis;
+  // comparisons?: PlaylistComparison[];
+  // generatedAt: Date;
 }
 
 export interface AnalysisOptions {

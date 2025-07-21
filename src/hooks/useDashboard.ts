@@ -9,7 +9,7 @@ const getInitialDarkMode = (): boolean => {
     const stored = localStorage.getItem('theme');
     if (stored === 'dark') return true;
     if (stored === 'light') return false;
-    
+
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return true;
   }
@@ -36,80 +36,81 @@ export function useDashboard() {
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const res = await fetch('/api/user', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/user', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
 
-        if (data.accessToken) {
-          dashboardApi.setAccessToken(data.accessToken); // ✅ to dodaj
+          if (data.accessToken) {
+            localStorage.setItem('spotify_access_token', data.accessToken);
+            dashboardApi.setAccessToken(data.accessToken);
+          }
+
+          // Ustaw user z accessToken
+          setUser({
+            ...data,
+            accessToken: data.accessToken // Dodaj to
+          });
+        } else {
+          console.log('User not authenticated in dashboard');
         }
-
-        // Ustaw user z accessToken
-        setUser({
-          ...data,
-          accessToken: data.accessToken // Dodaj to
-        });
-      } else {
-        console.log('User not authenticated in dashboard');
+      } catch (err) {
+        console.error('Błąd przy pobieraniu użytkownika:', err);
+      } finally {
+        setLoadingUser(false);
       }
-    } catch (err) {
-      console.error('Błąd przy pobieraniu użytkownika:', err);
+    };
+
+    fetchUser();
+  }, []);
+
+
+  const fetchPlaylists = useCallback(async () => {
+    console.log('📥 Fetching playlists...');
+    if (loadingPlaylists) return;
+
+    setLoadingPlaylists(true);
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      // Sprawdź czy API ma token, a nie user
+      if (!dashboardApi.hasAccessToken()) {
+        throw new Error('No access token available');
+      }
+
+      // Pobierz playlisty
+      const response = await dashboardApi.getUserPlaylists();
+
+      const convertedPlaylists: Playlist[] = response.playlists.map(playlist => ({
+        id: playlist.id,
+        name: playlist.name,
+        description: playlist.description || '',
+        owner: playlist.owner.display_name || playlist.owner.id,
+        imageUrl: playlist.images[0]?.url || '',
+        tracksCount: playlist.tracks.total,
+        isPublic: playlist.public,
+        collaborative: playlist.collaborative,
+        externalUrl: playlist.external_urls.spotify,
+        createdAt: new Date(),
+        lastModified: new Date()
+      }));
+
+      setAllPlaylists(convertedPlaylists);
+      setPlaylists(convertedPlaylists);
+
+    } catch (error) {
+      console.error('Błąd przy pobieraniu playlist:', error);
+      setState(prev => ({
+        ...prev,
+        error: 'Nie udało się załadować playlist. Spróbuj ponownie.'
+      }));
     } finally {
-      setLoadingUser(false);
+      setLoadingPlaylists(false);
+      setState(prev => ({ ...prev, isLoading: false }));
     }
-  };
-
-  fetchUser();
-}, []);
-
-
-const fetchPlaylists = useCallback(async () => {
-  console.log('📥 Fetching playlists...');
-  if (loadingPlaylists) return;
-
-  setLoadingPlaylists(true);
-  setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-  try {
-        // Sprawdź czy API ma token, a nie user
-    if (!dashboardApi.hasAccessToken()) {
-      throw new Error('No access token available');
-    }
-
-    // Pobierz playlisty
-    const response = await dashboardApi.getUserPlaylists();
-
-    const convertedPlaylists: Playlist[] = response.playlists.map(playlist => ({
-      id: playlist.id,
-      name: playlist.name,
-      description: playlist.description || '',
-      owner: playlist.owner.display_name || playlist.owner.id,
-      imageUrl: playlist.images[0]?.url || '',
-      tracksCount: playlist.tracks.total,
-      isPublic: playlist.public,
-      collaborative: playlist.collaborative,
-      externalUrl: playlist.external_urls.spotify,
-      createdAt: new Date(),
-      lastModified: new Date()
-    }));
-
-    setAllPlaylists(convertedPlaylists);
-    setPlaylists(convertedPlaylists);
-
-  } catch (error) {
-    console.error('Błąd przy pobieraniu playlist:', error);
-    setState(prev => ({
-      ...prev,
-      error: 'Nie udało się załadować playlist. Spróbuj ponownie.'
-    }));
-  } finally {
-    setLoadingPlaylists(false);
-    setState(prev => ({ ...prev, isLoading: false }));
-  }
-}, [loadingPlaylists]);
+  }, [loadingPlaylists]);
 
 
   useEffect(() => {
@@ -121,17 +122,17 @@ const fetchPlaylists = useCallback(async () => {
   // NAPRAWIONE wyszukiwanie z debouncing i API
   const performSearch = useCallback(async (query: string) => {
     if (loadingPlaylists) return;
-    
+
     setLoadingPlaylists(true);
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       if (query.trim() === '') {
         setPlaylists(allPlaylistsRef.current);
       } else {
         // Wyszukaj przez API
         const response = await dashboardApi.searchPlaylists(query);
-        
+
         const convertedPlaylists: Playlist[] = response.playlists.map(playlist => ({
           id: playlist.id,
           name: playlist.name,
@@ -145,15 +146,15 @@ const fetchPlaylists = useCallback(async () => {
           createdAt: new Date(),
           lastModified: new Date()
         }));
-        
+
         setPlaylists(convertedPlaylists);
       }
-      
+
     } catch (error) {
       console.error('Błąd przy wyszukiwaniu:', error);
-      setState(prev => ({ 
-        ...prev, 
-        error: 'Nie udało się wyszukać playlist. Spróbuj ponownie.' 
+      setState(prev => ({
+        ...prev,
+        error: 'Nie udało się wyszukać playlist. Spróbuj ponownie.'
       }));
     } finally {
       setLoadingPlaylists(false);
@@ -162,7 +163,7 @@ const fetchPlaylists = useCallback(async () => {
   }, [loadingPlaylists]);
 
   const allPlaylistsRef = useRef<Playlist[]>([]);
-  
+
   useEffect(() => {
     allPlaylistsRef.current = allPlaylists;
   }, [allPlaylists]);
@@ -188,7 +189,7 @@ const fetchPlaylists = useCallback(async () => {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    
+
     if (state.isDarkMode) {
       root.classList.add('dark');
       root.classList.remove('light');
@@ -207,7 +208,7 @@ const fetchPlaylists = useCallback(async () => {
   // Obsługa zmiany preferencji systemowych
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       if (!localStorage.getItem('theme')) {
         setState(prev => ({ ...prev, isDarkMode: e.matches }));
@@ -252,9 +253,9 @@ const fetchPlaylists = useCallback(async () => {
   }, []);
 
   const selectAllPlaylists = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
-      selectedPlaylists: playlists.map(p => p.id) 
+    setState(prev => ({
+      ...prev,
+      selectedPlaylists: playlists.map(p => p.id)
     }));
   }, [playlists]);
 
@@ -266,15 +267,15 @@ const fetchPlaylists = useCallback(async () => {
     state.selectedPlaylists.includes(playlist.id)
   );
 
-  const cardClasses = state.isDarkMode 
+  const cardClasses = state.isDarkMode
     ? 'bg-gray-800 border-gray-700 text-white'
     : 'bg-white border-gray-200 text-gray-900';
 
-  const themeClasses = state.isDarkMode 
+  const themeClasses = state.isDarkMode
     ? 'bg-gray-900 text-white'
     : 'bg-gray-50 text-gray-900';
 
-  const hoverClasses = state.isDarkMode 
+  const hoverClasses = state.isDarkMode
     ? 'hover:bg-gray-700'
     : 'hover:bg-gray-100';
 

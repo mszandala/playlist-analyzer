@@ -10,7 +10,7 @@ interface PlaylistSelectorProps {
   searchQuery: string;
   isDarkMode: boolean;
   cardClasses: string;
-  hoverClasses: string; 
+  hoverClasses: string;
   onTogglePlaylist: (playlistId: string) => void;
   onSetViewMode: (mode: 'grid' | 'list') => void;
   onSetSearchQuery: (query: string) => void;
@@ -24,7 +24,7 @@ export function PlaylistSelector({
   viewMode,
   searchQuery,
   isDarkMode,
-  cardClasses, 
+  cardClasses,
   hoverClasses,
   onTogglePlaylist,
   onSetViewMode,
@@ -32,16 +32,15 @@ export function PlaylistSelector({
   onClearSelection,
   onSelectAll
 }: PlaylistSelectorProps) {
-  // NAPRAWIONA LOGIKA: isDarkMode true = ciemny motyw
-  const inputClasses = isDarkMode 
-    ? 'bg-gray-700 border-gray-600 text-white' 
+  const inputClasses = isDarkMode
+    ? 'bg-gray-700 border-gray-600 text-white'
     : 'bg-white border-gray-300 text-gray-900';
-  
+
   const isAllSelected = playlists.length > 0 && selectedPlaylists.length === playlists.length;
   const isSomeSelected = selectedPlaylists.length > 0 && selectedPlaylists.length < playlists.length;
 
   const [visibleRows, setVisibleRows] = useState(2);
-  const [screenSize, setScreenSize] = useState<'sm' | 'lg' | 'xl'>('lg');  
+  const [screenSize, setScreenSize] = useState<'sm' | 'lg' | 'xl'>('lg');
 
   // Detect screen size
   useEffect(() => {
@@ -58,7 +57,7 @@ export function PlaylistSelector({
 
   const playlistsPerRow = useMemo(() => {
     if (viewMode === 'list') return 1;
-    
+
     switch (screenSize) {
       case 'xl': return 7;
       case 'lg': return 3;
@@ -81,7 +80,7 @@ export function PlaylistSelector({
               Zaznacz jedną lub więcej playlist ({selectedPlaylists.length} z {playlists.length} wybrane)
             </p>
           </div>
-          
+
           {/* Selection controls */}
           <div className="flex items-center space-x-2 ml-4">
             <button
@@ -100,7 +99,7 @@ export function PlaylistSelector({
                 </>
               )}
             </button>
-            
+
             {selectedPlaylists.length > 0 && (
               <button
                 onClick={onClearSelection}
@@ -112,7 +111,7 @@ export function PlaylistSelector({
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 mt-4 lg:mt-0">
           {/* Search */}
           <div className="relative">
@@ -133,27 +132,25 @@ export function PlaylistSelector({
               </button>
             )}
           </div>
-          
+
           {/* View mode toggle */}
           <div className={`flex border rounded-lg p-1 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
             <button
               onClick={() => onSetViewMode('grid')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-green-500 text-white' 
+              className={`p-2 rounded transition-colors ${viewMode === 'grid'
+                  ? 'bg-green-500 text-white'
                   : 'opacity-50 hover:opacity-100'
-              }`}
+                }`}
               aria-label="Widok siatki"
             >
               <Grid3x3 className="w-4 h-4" />
             </button>
             <button
               onClick={() => onSetViewMode('list')}
-              className={`p-2 rounded transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-green-500 text-white' 
+              className={`p-2 rounded transition-colors ${viewMode === 'list'
+                  ? 'bg-green-500 text-white'
                   : 'opacity-50 hover:opacity-100'
-              }`}
+                }`}
               aria-label="Widok listy"
             >
               <List className="w-4 h-4" />
@@ -161,7 +158,7 @@ export function PlaylistSelector({
           </div>
         </div>
       </div>
-      
+
       {/* Playlists grid/list */}
       {playlists.length === 0 ? (
         <div className="text-center py-12">
@@ -172,11 +169,10 @@ export function PlaylistSelector({
           </p>
         </div>
       ) : (
-        <div className={`grid ${
-          viewMode === 'grid' 
-            ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7' 
+        <div className={`grid ${viewMode === 'grid'
+            ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7'
             : 'grid-cols-1'
-        } gap-4`}>
+          } gap-4`}>
           {visiblePlaylists.map(playlist => (
             <PlaylistCard
               key={playlist.id}
@@ -189,7 +185,7 @@ export function PlaylistSelector({
           ))}
         </div>
       )}
-      
+
       {/* Load More Bar */}
       {hasMore && (
         <div className="mt-6 flex justify-center">
@@ -197,8 +193,8 @@ export function PlaylistSelector({
             onClick={() => setVisibleRows(prev => prev + 2)}
             className={`
               flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-colors duration-200
-              ${isDarkMode 
-                ? 'bg-white/10 text-white hover:bg-white/20' 
+              ${isDarkMode
+                ? 'bg-white/10 text-white hover:bg-white/20'
                 : 'bg-black text-white hover:bg-neutral-800'
               }
             `}

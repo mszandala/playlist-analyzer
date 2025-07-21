@@ -3,13 +3,12 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('spotify_access_token');
+    const cookieStore = await cookies(); // dostęp do ciasteczek
+    const accessToken = cookieStore.get('spotify_access_token'); // próbujemy wyciągnąć token
     
     if (!accessToken) {
-      return NextResponse.json({ 
-        authenticated: false 
-      });
+      // Brak tokena – użytkownik niezalogowany
+      return NextResponse.json({authenticated: false});
     }
 
     // Sprawdź czy token jest ważny
@@ -20,13 +19,14 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ 
-        authenticated: false 
-      });
+      // Token był, ale np. wygasł albo nie działa
+      return NextResponse.json({authenticated: false});
     }
 
+    // Parsowanie danych użytkownika
     const userData = await response.json();
     
+    // Sukces – użytkownik zalogowany
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -39,8 +39,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error checking auth:', error);
-    return NextResponse.json({ 
-      authenticated: false 
-    });
+    return NextResponse.json({authenticated: false});
   }
 }

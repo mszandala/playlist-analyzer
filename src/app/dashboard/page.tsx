@@ -7,6 +7,10 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { PlaylistSelector } from '@/components/dashboard/PlaylistSelector';
 import { AnalysisNavigation } from '@/components/dashboard/AnalysisNavigation';
 import { RefreshCw } from 'lucide-react';
+import { OverviewTab } from '../../components/analysis/OverviewTab';
+import { AnalysisData } from '@/types/dashboard.types';
+import { analysisApi } from '@/services/AnalysisApi';
+import { convertAnalysisResult } from '@/utils/convertAnalysisResult';
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -38,12 +42,33 @@ const DashboardPage = () => {
     loadingUser
   } = useDashboard();
 
+  const [analysisData, setAnalysisData] = React.useState<AnalysisData | null>(null);
+
+
   useEffect(() => {
     // Jeśli nie ma użytkownika i skończyło się ładowanie, przekieruj
     if (!loadingUser && !user) {
       router.replace('/');
     }
   }, [user, loadingUser, router]);
+
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      if (selectedPlaylists.length === 0) {
+        setAnalysisData(null);
+        return;
+      }
+      try {
+        const result = await analysisApi.analyzeMultiplePlaylists(selectedPlaylists);
+        setAnalysisData(convertAnalysisResult(result));
+      } catch (error) {
+        console.error('Błąd podczas pobierania analizy:', error);
+        setAnalysisData(null);
+      }
+    };
+
+    fetchAnalysis();
+  }, [selectedPlaylists]);
 
   const handleLogout = async () => {
     try {
@@ -121,20 +146,26 @@ const DashboardPage = () => {
           isDarkMode={isDarkMode}
           cardClasses={cardClasses}
           hoverClasses={hoverClasses}
-          searchQuery={searchQuery}                   
-          onSetSearchQuery={setSearchQuery}            
-          onClearSelection={clearSelection}                 
-          onSelectAll={selectAllPlaylists} 
+          searchQuery={searchQuery}
+          onSetSearchQuery={setSearchQuery}
+          onClearSelection={clearSelection}
+          onSelectAll={selectAllPlaylists}
         />
       </div>
 
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-200px)]">
         <AnalysisNavigation
           selectedTab={selectedTab}
-          onTabChange={setSelectedTab} 
-          isDarkMode={isDarkMode} 
-          hasSelectedPlaylists={selectedPlaylists.length > 0} 
+          onTabChange={setSelectedTab}
+          isDarkMode={isDarkMode}
+          hasSelectedPlaylists={selectedPlaylists.length > 0}
         />
+        <div className="flex-1 p-6">
+          {selectedTab === 'overview' && analysisData && (
+            <OverviewTab analysis={analysisData} />
+          )}
+          {/* inne zakładki */}
+        </div>
       </div>
     </div>
   );

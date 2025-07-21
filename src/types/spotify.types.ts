@@ -7,6 +7,7 @@ export interface SpotifyTrack {
   }>;
   duration_ms: number;
   audio_features?: AudioFeatures;
+  popularity?: number;
 }
 
 export interface AudioFeatures {

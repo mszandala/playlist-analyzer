@@ -86,16 +86,22 @@ export const metadata: Metadata = {
       },
     ],
   },
-  themeColor: [
+};
+
+export function generateThemeColor() {
+  return [
     { media: "(prefers-color-scheme: light)", color: "#1db954" },
     { media: "(prefers-color-scheme: dark)", color: "#191414" },
-  ],
-  viewport: {
+  ];
+}
+
+export function generateViewport() {
+  return {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
-  },
-};
+  };
+}
 
 export default function RootLayout({
   children,
