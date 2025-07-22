@@ -251,6 +251,35 @@ export const getPlaylistWithFeatures = async (
   const playlistResponse = await userApi.getPlaylist(playlistId);
   const playlist = playlistResponse.body;
 
+  // Zbierz unikalne ID artystów z utworów
+  const artistIds = Array.from(
+    new Set(
+      playlist.tracks.items
+        .flatMap(item => item.track?.artists?.map(a => a.id))
+        .filter((id): id is string => !!id)
+    )
+  );
+
+  const artistDetails: Record<string, any> = {};
+
+  for (let i = 0; i < artistIds.length; i += 50) {
+    const batch = artistIds.slice(i, i + 50);
+    const response = await userApi.getArtists(batch);
+    const artists = (response as any).body?.artists || (response as any).artists || [];
+    artists.forEach((artist: any) => {
+      artistDetails[artist.id] = artist;
+    });
+  }
+
+  playlist.tracks.items.forEach(item => {
+    if (item.track && item.track.artists) {
+      item.track.artists = item.track.artists.map((artist: any) => ({
+        ...artist,
+        genres: artistDetails[artist.id]?.genres || [],
+      }));
+    }
+  });
+
   // Przygotuj strukturę zgodną z PlaylistData
   const playlistData: PlaylistData = {
     playlist: {

@@ -62,6 +62,7 @@ function countGenres(tracks: any[]) {
     tracks.forEach(track => {
         // Pobieramy gatunki z artystów (jeśli są dostępne)
         track.artists?.forEach((artist: any) => {
+            console.log('artist', artist);
             artist.genres?.forEach((genre: string) => {
                 genreMap.set(genre, (genreMap.get(genre) || 0) + 1);
             });
