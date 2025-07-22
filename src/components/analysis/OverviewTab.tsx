@@ -44,15 +44,15 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
             <div className="grid grid-cols-2 gap-6">
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Całkowity czas trwania</h3>
-                    <p className="text-3xl">{Math.round(analysis.stats.totalDuration / 60)} min</p>
+                    <p className="text-3xl">{Math.round(analysis.stats.totalDuration / 1000 / 60)} min</p>
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Unikalni artyści</h3>
-                    <p className="text-3xl">{analysis.topArtists.length}</p>
+                    <p className="text-3xl">{analysis.stats.uniqueArtists}</p>
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Średni czas utworu</h3>
-                    <p className="text-3xl">{Math.round(analysis.stats.totalDuration / analysis.stats.totalTracks)} sek</p>
+                    <p className="text-3xl">{Math.round(analysis.stats.totalDuration / analysis.stats.totalTracks / 1000)} sek</p>
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Najpopularniejszy gatunek</h3>

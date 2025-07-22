@@ -13,6 +13,7 @@ export function convertAnalysisResult(result: AnalysisResult): AnalysisData {
     // Znajdź najpopularniejszego artystę (pierwszego z listy)
     const topArtist = artistDistribution.length > 0 ? artistDistribution[0] : null;
 
+
     return {
         stats: {
             totalTracks: statistics.totalTracks || 0,
@@ -20,6 +21,7 @@ export function convertAnalysisResult(result: AnalysisResult): AnalysisData {
             averagePopularity: statistics.averagePopularity || 0,
             topGenre: statistics.mostCommonGenre || 'Nieznany',
             topArtist: artistDistribution[0]?.name || 'Brak danych',
+            uniqueArtists: statistics.uniqueArtists || 0,
         },
         mood: {
             // Ponieważ API już nie zwraca danych o nastroju, używamy wartości domyślnych

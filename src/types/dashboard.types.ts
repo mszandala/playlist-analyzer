@@ -17,7 +17,7 @@ export interface User {
   name: string;
   email: string;
   image: string;
-  accessToken?: string; 
+  accessToken?: string;
 }
 
 
@@ -44,6 +44,7 @@ export interface PlaylistStats {
   averagePopularity: number;
   topGenre: string;
   topArtist: string;
+  uniqueArtists: number;
 }
 
 export interface MoodAnalysis {
@@ -66,4 +67,5 @@ export interface AnalysisData {
   mood: MoodAnalysis;
   topArtists: ArtistStat[];
   genres: { name: string; count: number }[];
+  yearDistribution: { year: number; count: number }[];
 }
