@@ -31,10 +31,10 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
 
     // Przykład rozkładu lat wydania (musisz mieć te dane w analysis)
     const yearDistribution = {
-        labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+        labels: analysis.yearDistribution.map(y => y.year),
         datasets: [{
             label: 'Utwory wg roku',
-            data: [5, 12, 20, 15, 8, 10], // <- podmień na swoje dane
+            data: analysis.yearDistribution.map(y => y.count),
             backgroundColor: '#1db954',
         }]
     };

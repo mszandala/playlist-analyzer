@@ -36,7 +36,7 @@ class AnalysisApi {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('API error response:', errorData);
+      console.error('API error response:', errorData, 'Status:', response.status);
       throw new Error(errorData.message || `Analysis request failed: ${response.status}`);
     }
 

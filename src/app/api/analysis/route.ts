@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         const cookieStore = await cookies();
         const accessToken = cookieStore.get('spotify_access_token')?.value;
+        console.log('[ANALYSIS API] accessToken:', accessToken);
 
         if (!accessToken) {
             return NextResponse.json({ error: 'Brak tokena Spotify' }, { status: 401 });

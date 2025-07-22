@@ -58,11 +58,33 @@ const DashboardPage = () => {
         setAnalysisData(null);
         return;
       }
+
       try {
+        console.log('Fetching analysis for playlists:', selectedPlaylists);
         const result = await analysisApi.analyzeMultiplePlaylists(selectedPlaylists);
-        setAnalysisData(convertAnalysisResult(result));
+
+        // Add logging to see what we get back
+        console.log('Analysis result:', result);
+
+        // Check if result has expected structure
+        if (!result) {
+          throw new Error('No analysis result returned');
+        }
+
+        const convertedData = convertAnalysisResult(result);
+        console.log('Converted analysis data:', convertedData);
+        setAnalysisData(convertedData);
+
       } catch (error) {
         console.error('Błąd podczas pobierania analizy:', error);
+
+        // You might want to show this error to the user
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          selectedPlaylists,
+          error
+        });
+
         setAnalysisData(null);
       }
     };

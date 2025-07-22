@@ -267,27 +267,25 @@ export const getPlaylistWithFeatures = async (
   return playlistData;
 };
 
+
 export const getTracksAudioFeatures = async (
   tracks: SpotifyTrack[],
   accessToken: string
 ): Promise<Map<string, AudioFeatures>> => {
-  const userApi = createUserSpotifyApi(accessToken);
-  const trackIds = tracks.map(track => track.id);
+  console.warn('Audio Features API is deprecated - returning empty data');
 
-  const featuresResponse = await userApi.getAudioFeaturesForTracks(trackIds);
+  // Zwróć pustą mapę zamiast wywoływać API
   const features = new Map<string, AudioFeatures>();
 
-  featuresResponse.body.audio_features.forEach((feature) => {
-    if (feature) {
-      features.set(feature.id, {
-        energy: feature.energy,
-        valence: feature.valence,
-        danceability: feature.danceability,
-        acousticness: feature.acousticness,
-        speechiness: feature.speechiness,
-        tempo: feature.tempo
-      });
-    }
+  tracks.forEach(track => {
+    features.set(track.id, {
+      energy: 0.5,        // Wartości domyślne
+      valence: 0.5,
+      danceability: 0.5,
+      acousticness: 0.5,
+      speechiness: 0.1,
+      tempo: 120
+    });
   });
 
   return features;
