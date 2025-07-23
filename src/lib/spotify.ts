@@ -247,15 +247,27 @@ export const getPlaylistWithFeatures = async (
 ): Promise<PlaylistData> => {
   const userApi = createUserSpotifyApi(accessToken);
 
-  // Pobierz playlistę
+  // Pobierz playlistę (nagłówek)
   const playlistResponse = await userApi.getPlaylist(playlistId);
   const playlist = playlistResponse.body;
+
+  // Pobierz wszystkie utwory z paginacją
+  let tracks: any[] = [];
+  let offset = 0;
+  const limit = 100;
+  let total = playlist.tracks.total;
+
+  while (tracks.length < total) {
+    const response = await userApi.getPlaylistTracks(playlistId, { offset, limit });
+    tracks = tracks.concat(response.body.items);
+    offset += limit;
+  }
 
   // Zbierz unikalne ID artystów z utworów
   const artistIds = Array.from(
     new Set(
-      playlist.tracks.items
-        .flatMap(item => item.track?.artists?.map(a => a.id))
+      tracks
+        .flatMap(item => item.track?.artists?.map((a: { id: string }) => a.id))
         .filter((id): id is string => !!id)
     )
   );
@@ -267,11 +279,15 @@ export const getPlaylistWithFeatures = async (
     const response = await userApi.getArtists(batch);
     const artists = (response as any).body?.artists || (response as any).artists || [];
     artists.forEach((artist: any) => {
-      artistDetails[artist.id] = artist;
+      if (artist && artist.id) {
+        artistDetails[artist.id] = artist;
+      } else {
+        console.warn('Pominięto artystę bez id:', artist);
+      }
     });
   }
 
-  playlist.tracks.items.forEach(item => {
+  tracks.forEach(item => {
     if (item.track && item.track.artists) {
       item.track.artists = item.track.artists.map((artist: any) => ({
         ...artist,
@@ -288,7 +304,7 @@ export const getPlaylistWithFeatures = async (
       description: playlist.description || undefined,
       followers: playlist.followers
     },
-    tracks: playlist.tracks.items.map(item => ({
+    tracks: tracks.map(item => ({
       track: item.track as SpotifyTrack | null
     }))
   };

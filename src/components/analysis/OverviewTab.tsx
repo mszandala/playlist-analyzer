@@ -10,15 +10,40 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ analysis }: OverviewTabProps) {
-    // Przykładowe dane do wykresów
+    // Oblicz sumę wszystkich utworów
+    const total = analysis.genres.reduce((sum, g) => sum + g.count, 0);
+
+    // Podziel gatunki na te powyżej 1% i resztę
+    const mainGenres = [];
+    let otherCount = 0;
+    for (const g of analysis.genres) {
+        if (total > 0 && g.count / total > 0.01) {
+            mainGenres.push(g);
+        } else {
+            otherCount += g.count;
+        }
+    }
+
+    // Dodaj kategorię "Inne" jeśli są jakieś rzadkie gatunki
+    if (otherCount > 0) {
+        mainGenres.push({ name: "Inne", count: otherCount });
+    }
+
+    // Kolory dla głównych gatunków
+    const baseColors = ['#1db954', '#ff6384', '#36a2eb', '#ffce56', '#a259a2', '#f39c12', '#e74c3c', '#8e44ad', '#16a085'];
+    const genreColors = mainGenres.map((g, i) =>
+        g.name === "Inne" ? "#737373ff" : baseColors[i % baseColors.length]
+    );
+
     const genreData = {
-        labels: analysis.genres.map(g => g.name),
+        labels: mainGenres.map(g => g.name),
         datasets: [{
             label: 'Gatunki',
-            data: analysis.genres.map(g => g.count),
-            backgroundColor: ['#1db954', '#ff6384', '#36a2eb', '#ffce56', '#a259a2'],
+            data: mainGenres.map(g => g.count),
+            backgroundColor: genreColors,
         }]
     };
+
 
     const artistData = {
         labels: analysis.topArtists.map(a => a.name),
@@ -44,7 +69,17 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
             <div className="grid grid-cols-2 gap-6">
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Całkowity czas trwania</h3>
-                    <p className="text-3xl">{Math.round(analysis.stats.totalDuration / 1000 / 60)} min</p>
+                    <p className="text-3xl">
+                        {(() => {
+                            const totalMinutes = Math.round(analysis.stats.totalDuration / 1000 / 60);
+                            if (totalMinutes >= 60) {
+                                const hours = Math.floor(totalMinutes / 60);
+                                const minutes = totalMinutes % 60;
+                                return `${hours} godz. ${minutes} min`;
+                            }
+                            return `${totalMinutes} min`;
+                        })()}
+                    </p>
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Unikalni artyści</h3>
@@ -56,7 +91,19 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 text-white">
                     <h3 className="font-bold text-lg mb-2">Najpopularniejszy gatunek</h3>
-                    <p className="text-3xl">{analysis.stats.topGenre}</p>
+                    <p className="text-3xl">
+                        {mainGenres.length > 0
+                            ? (() => {
+                                const filtered = mainGenres.filter(g => g.name !== "Inne");
+                                if (filtered.length === 0) return "Brak danych";
+                                const max = Math.max(...filtered.map(g => g.count));
+                                return filtered
+                                    .filter(g => g.count === max)
+                                    .map(g => g.name)
+                                    .join(", ");
+                            })()
+                            : "Brak danych"}
+                    </p>
                 </div>
             </div>
 
