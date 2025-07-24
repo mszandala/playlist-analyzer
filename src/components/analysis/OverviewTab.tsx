@@ -88,6 +88,38 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
         }
     }
 
+    // Przygotuj rozkład długości utworów (zaokrąglone do 10 sekund, pojedyncza wartość w min:sek)
+    const lengthBuckets: Record<string, number> = {};
+    if (Array.isArray(tracks) && tracks.length > 0) {
+        tracks.forEach(track => {
+            if (typeof track.duration_ms === 'number' && !isNaN(track.duration_ms)) {
+                const seconds = Math.round(track.duration_ms / 1000);
+                const rounded = Math.round(seconds / 10) * 10; // zaokrąglenie do 10s
+                const minutes = Math.floor(rounded / 60);
+                const secs = rounded % 60;
+                const label = `${minutes}:${secs.toString().padStart(2, '0')}`;
+                lengthBuckets[label] = (lengthBuckets[label] || 0) + 1;
+            }
+        });
+    }
+    const sortedLengthLabels = Object.keys(lengthBuckets)
+        .map(label => {
+            const [min, sec] = label.split(':').map(Number);
+            return { label, totalSec: min * 60 + sec };
+        })
+        .sort((a, b) => a.totalSec - b.totalSec)
+        .map(obj => obj.label);
+
+    const lengthDistribution = {
+        labels: sortedLengthLabels,
+        datasets: [{
+            label: 'Liczba utworów',
+            data: sortedLengthLabels.map(label => lengthBuckets[label]),
+            backgroundColor: '#f39c12',
+        }]
+    };
+
+
     return (
         <div>
             <h2 className="text-2xl font-bold mb-6">Podstawowe informacje</h2>
@@ -148,7 +180,7 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
                         </p>
                     </div>
                 </div>
-
+                <h2 className="text-2xl font-bold mb-6">Wizualizacje ogólne</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <h4 className="font-semibold mb-2">Rozkład lat wydania</h4>
@@ -157,10 +189,14 @@ export function OverviewTab({ analysis }: OverviewTabProps) {
                     <div>
                         <h4 className="font-semibold mb-2">Top artyści</h4>
                         <Bar data={artistData} />
-                        <div>
-                            <h4 className="font-semibold mb-2">Rozkład gatunków</h4>
-                            <Pie data={genreData} />
-                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2">Rozkład długości utworów (co 10 s)</h4>
+                        <Bar data={lengthDistribution} />
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2">Rozkład gatunków</h4>
+                        <Pie data={genreData} />
                     </div>
                 </div>
             </div>

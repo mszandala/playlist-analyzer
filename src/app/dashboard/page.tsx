@@ -9,7 +9,7 @@ import { AnalysisNavigation } from '@/components/dashboard/AnalysisNavigation';
 import { RefreshCw } from 'lucide-react';
 import { OverviewTab } from '../../components/analysis/OverviewTab';
 import { AnalysisData } from '@/types/dashboard.types';
-import { analysisApi } from '@/services/AnalysisApi';
+import { analysisApi } from '@/services/analysisApi';
 import { convertAnalysisResult } from '@/utils/convertAnalysisResult';
 
 const DashboardPage = () => {

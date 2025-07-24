@@ -73,6 +73,7 @@ export interface AudioFeaturesAnalysis {
 
 // src/types/analysis.types.ts - Zaktualizowane typy
 export interface AnalysisResult {
+  tracks: any;
   playlistIds: string[];
   statistics: {
     yearDistribution: any;
