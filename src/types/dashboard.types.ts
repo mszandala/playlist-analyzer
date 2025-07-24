@@ -62,10 +62,12 @@ export interface ArtistStat {
   image?: string;
 }
 
+
 export interface AnalysisData {
   stats: PlaylistStats;
   mood: MoodAnalysis;
   topArtists: ArtistStat[];
   genres: { name: string; count: number }[];
   yearDistribution: { year: number; count: number }[];
+  tracks: { duration_ms: number }[];
 }

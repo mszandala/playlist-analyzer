@@ -210,6 +210,7 @@ export async function getAnalysisForPlaylists(
             yearsDistribution,
             topTracks: topTracksList,
             popularityInsights
-        }
+        },
+        tracks: allTracks
     };
 }

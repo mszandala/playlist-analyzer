@@ -47,5 +47,9 @@ export function convertAnalysisResult(result: AnalysisResult): AnalysisData {
                 count: year.count || 0,
             }))
             : [],
+        tracks: result.tracks.map((track: { duration_ms: any; }) => ({
+            duration_ms: track.duration_ms,
+            // inne właściwości jeśli potrzebne
+        })),
     };
 }
